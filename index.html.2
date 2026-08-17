@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GOLDSTAR0513 競馬期待値分析</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>GOLDSTAR0513</h1>
+    <p>Racing Expected Value Analytics</p>
+    <button id="pwa-install-btn" class="install-banner-btn hidden">📲 ホーム画面にアプリを追加</button>
+  </header>
+
+  <main>
+    <!-- 入力フォームセクション -->
+    <section class="card form-section">
+      <h2>データ入力</h2>
+      <div id="realtime-roi-box" class="realtime-roi">
+        入力中馬券の回収率: <span id="dynamic-roi">---</span>%
+      </div>
+      
+      <form id="entry-form">
+        <div class="form-group">
+          <label for="date">日付</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+          <label for="track">競馬場</label>
+          <select id="track" required>
+            <option value="">選択してください</option>
+            <option value="札幌">札幌</option><option value="函館">函館</option>
+            <option value="福島">福島</option><option value="新潟">新潟</option>
+            <option value="東京">東京</option><option value="中山">中山</option>
+            <option value="中京">中京</option><option value="京都">京都</option>
+            <option value="阪神">阪神</option><option value="小倉">小倉</option>
+            <option value="地方/海外">地方/海外</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="race">レース番号</label>
+          <input type="number" id="race" min="1" max="12" placeholder="例: 11" required>
+        </div>
+        <div class="form-group">
+          <label for="bet-type">券種</label>
+          <select id="bet-type" required>
+            <option value="">選択してください</option>
+            <option value="単勝">単勝</option><option value="複勝">複勝</option>
+            <option value="枠連">枠連</option><option value="馬連">馬連</option>
+            <option value="ワイド">ワイド</option><option value="馬単">馬単</option>
+            <option value="3連複">3連複</option><option value="3連単">3連単</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="odds">確定オッズ</label>
+            <button type="button" id="btn-set-miss" class="btn-miss-quick">不的中(払戻0円)</button>
+          </div>
+          <input type="number" id="odds" step="0.1" min="1.0" placeholder="例: 3.5" required>
+        </div>
+        <div class="form-group">
+          <label for="cost">購入金額 (円)</label>
+          <input type="number" id="cost" min="100" max="1000000" step="100" placeholder="例: 1000" required>
+        </div>
+        <div class="form-group">
+          <label for="payout">払戻金額 (円)</label>
+          <input type="number" id="payout" min="0" max="100000000" placeholder="例: 3500 (外れは0)" required>
+        </div>
+        <div class="form-group">
+          <label for="memo">購入根拠・メモ (血統/馬場バイアス等)</label>
+          <textarea id="memo" rows="3" placeholder="外枠先行有利、母父欧州型血統など"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">データを登録する</button>
+      </form>
+    </section>
+
+    <!-- フィルタリングセクション -->
+    <section class="card filter-section">
+      <h2>データ絞り込み</h2>
+      <div class="filters">
+        <select id="filter-period">
+          <option value="all">全期間</option>
+          <option value="month">今月</option>
+          <option value="year">今年</option>
+        </select>
+        <input type="text" id="filter-keyword" placeholder="メモ・条件を検索...">
+      </div>
+    </section>
+
+    <!-- ダッシュボードセクション -->
+    <section class="card dashboard-section">
+      <h2>集計ダッシュボード</h2>
+      <div id="no-data-msg" class="no-data hidden">データがありません。入力を開始してください。</div>
+      <div class="charts-container" id="charts-container">
+        <div class="chart-box"><canvas id="chart-track"></canvas></div>
+        <div class="chart-box"><canvas id="chart-date"></canvas></div>
+        <div class="chart-box"><canvas id="chart-odds"></canvas></div>
+        <div class="chart-box"><canvas id="chart-bettype"></canvas></div>
+      </div>
+    </section>
+
+    <!-- クロス集計アコーディオン -->
+    <section class="card cross-tab-section">
+      <h2>競馬場別 × 券種別 分析</h2>
+      <p class="section-desc">※タップで展開し、券種ごとの払戻・回収率を確認できます</p>
+      <div id="accordion-container"></div>
+    </section>
+
+    <!-- 履歴・データ管理セクション -->
+    <section class="card history-section">
+      <h2>履歴一覧とバックアップ</h2>
+      <div class="data-controls">
+        <button id="btn-export" class="btn-secondary">CSVエクスポート</button>
+        <label for="btn-import" class="btn-secondary file-label">CSVインポート</label>
+        <input type="file" id="btn-import" accept=".csv" style="display: none;">
+        <button id="btn-clear" class="btn-danger">全データ一括初期化</button>
+      </div>
+      <div class="table-responsive">
+        <table id="history-table">
+          <thead>
+            <tr>
+              <th>日付</th><th>場/R</th><th>券種</th><th>オッズ</th><th>投資</th><th>払戻</th><th>回収率</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
