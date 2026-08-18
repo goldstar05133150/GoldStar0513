@@ -1,0 +1,24 @@
+{
+  "name": "GOLDSTAR0513 競馬期待値分析",
+  "short_name": "GOLDSTAR",
+  "description": "競馬の期待値・投資回収率を記録・分析するアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#1A365D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
