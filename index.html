@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GOLDSTAR0513 競馬期待値分析</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>GOLDSTAR0513</h1>
+    <p>回収率、的中率可視化・分析ツール</p>
+    <button id="pwa-install-btn" class="install-banner-btn">📲 アプリをホーム画面に追加</button>
+  </header>
+
+  <!-- PWA追加手順・状態通知モーダル -->
+  <div id="pwa-guide-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 id="pwa-modal-title">ホーム画面への追加</h3>
+      <div id="pwa-guide-text"></div>
+      <button id="btn-close-modal" class="btn-primary" style="margin-top: 1rem;">閉じる</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- 入力フォームセクション -->
+    <section class="card form-section">
+      <h2>データ入力</h2>
+      <div id="realtime-roi-box" class="realtime-roi">
+        入力中馬券の回収率: <span id="dynamic-roi">---</span>%
+      </div>
+      
+      <form id="entry-form">
+        <div class="form-group">
+          <label for="date">日付</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+          <label for="track">競馬場</label>
+          <select id="track" required>
+            <option value="">選択してください</option>
+            <optgroup label="中央競馬">
+              <option value="札幌">札幌</option><option value="函館">函館</option>
+              <option value="福島">福島</option><option value="新潟">新潟</option>
+              <option value="東京">東京</option><option value="中山">中山</option>
+              <option value="中京">中京</option><option value="京都">京都</option>
+              <option value="阪神">阪神</option><option value="小倉">小倉</option>
+            </optgroup>
+            <optgroup label="地方競馬">
+              <option value="帯広(ばんえい)">帯広(ばんえい)</option>
+              <option value="門別">門別</option>
+              <option value="盛岡">盛岡</option>
+              <option value="水沢">水沢</option>
+              <option value="浦和">浦和</option>
+              <option value="船橋">船橋</option>
+              <option value="大井">大井</option>
+              <option value="川崎">川崎</option>
+              <option value="金沢">金沢</option>
+              <option value="笠松">笠松</option>
+              <option value="名古屋">名古屋</option>
+              <option value="園田">園田</option>
+              <option value="姫路">姫路</option>
+              <option value="高知">高知</option>
+              <option value="佐賀">佐賀</option>
+            </optgroup>
+            <optgroup label="海外">
+              <option value="海外">海外</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="race">レース番号</label>
+          <select id="race" required>
+            <option value="">選択してください</option>
+            <option value="1">1R</option>
+            <option value="2">2R</option>
+            <option value="3">3R</option>
+            <option value="4">4R</option>
+            <option value="5">5R</option>
+            <option value="6">6R</option>
+            <option value="7">7R</option>
+            <option value="8">8R</option>
+            <option value="9">9R</option>
+            <option value="10">10R</option>
+            <option value="11">11R</option>
+            <option value="12">12R</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="bet-type">券種</label>
+          <select id="bet-type" required>
+            <option value="">選択してください</option>
+            <option value="単勝">単勝</option><option value="複勝">複勝</option>
+            <option value="枠連">枠連</option><option value="馬連">馬連</option>
+            <option value="ワイド">ワイド</option><option value="馬単">馬単</option>
+            <option value="3連複">3連複</option><option value="3連単">3連単</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="odds">確定オッズ</label>
+            <button type="button" id="btn-set-miss" class="btn-miss-quick">不的中(オッズクリア・払戻0円)</button>
+          </div>
+          <input type="number" id="odds" step="0.1" min="1.0" placeholder="例: 3.5">
+        </div>
+        <div class="form-group">
+          <label for="cost">購入金額 (円)</label>
+          <p class="input-note">※除外、出走取消などで返還がある場合は、返還金額を差し引いた実質の購入金額を入力して下さい。</p>
+          <p class="input-note">※不的中の際は購入金額のみ入力して下さい。</p>
+          <input type="number" id="cost" min="100" max="1000000" step="100" placeholder="例: 1000" required>
+        </div>
+        <div class="form-group">
+          <label for="payout">払戻金額 (円)</label>
+          <input type="number" id="payout" min="0" max="100000000" placeholder="例: 3500 (不的中は未入力または0)">
+        </div>
+        <div class="form-group">
+          <label for="memo">購入根拠・メモ (血統/馬場バイアス等)</label>
+          <textarea id="memo" rows="3" placeholder="外枠先行有利、母父欧州型血統など"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">データを登録する</button>
+      </form>
+    </section>
+
+    <!-- フィルタリングセクション -->
+    <section class="card filter-section">
+      <h2>データ絞り込み</h2>
+      <div class="filters">
+        <select id="filter-period">
+          <option value="all">全期間</option>
+          <option value="date_range">日付指定 (カレンダーから選択)</option>
+          <option value="month">月別指定 (年月を選択)</option>
+          <option value="year">年度別指定 (年度一覧から選択)</option>
+        </select>
+        <select id="filter-category">
+          <option value="all">全区分 (中央・地方・海外)</option>
+          <option value="jra">中央競馬 (JRA)</option>
+          <option value="local">地方競馬</option>
+          <option value="foreign">海外競馬</option>
+        </select>
+        <input type="text" id="filter-keyword" placeholder="メモ・条件を検索...">
+      </div>
+
+      <!-- 期間選択のサブフィルター -->
+      <div id="sub-filter-container" class="sub-filter-container">
+        <!-- 日付指定 -->
+        <div id="filter-sub-date-range" class="filter-sub hidden">
+          <input type="date" id="filter-start-date" aria-label="開始日">
+          <span class="date-sep">〜</span>
+          <input type="date" id="filter-end-date" aria-label="終了日">
+        </div>
+        <!-- 月別指定 -->
+        <div id="filter-sub-month" class="filter-sub hidden">
+          <input type="month" id="filter-month-val" aria-label="月別指定">
+        </div>
+        <!-- 年度別指定 -->
+        <div id="filter-sub-year" class="filter-sub hidden">
+          <select id="filter-year-val" aria-label="年度別指定">
+            <option value="">年度を選択</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 集計ダッシュボードセクション -->
+    <section class="card dashboard-section">
+      <h2>集計ダッシュボード</h2>
+      <div id="no-data-msg" class="no-data hidden">データがありません。入力を開始してください。</div>
+      
+      <div id="dashboard-content" class="dashboard-wrapper">
+        <!-- 全体合算サマリーカード -->
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span class="summary-title">総投資額</span>
+            <span id="sum-total-cost" class="summary-val">¥0</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-title">総払戻額</span>
+            <span id="sum-total-payout" class="summary-val">¥0</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-title">トータル的中率</span>
+            <span id="sum-total-hit-rate" class="summary-val">0.0%</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-title">トータル回収率</span>
+            <span id="sum-total-roi" class="summary-val">0.0%</span>
+          </div>
+          <div class="summary-card full-width">
+            <span class="summary-title">トータル収支</span>
+            <span id="sum-total-balance" class="summary-val">¥0</span>
+          </div>
+        </div>
+
+        <!-- 競馬場別 サマリー一覧表 -->
+        <div class="sub-table-box">
+          <h3 class="sub-heading">競馬場別 総投資・的中率・回収率</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr><th>競馬場</th><th>総投資</th><th>総払戻</th><th>的中率</th><th>回収率</th></tr>
+              </thead>
+              <tbody id="track-summary-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 券種別 サマリー一覧表 -->
+        <div class="sub-table-box">
+          <h3 class="sub-heading">券種別 総投資・的中率・回収率</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr><th>券種</th><th>総投資</th><th>総払戻</th><th>的中率</th><th>回収率</th></tr>
+              </thead>
+              <tbody id="bettype-summary-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 各種グラフ表示エリア -->
+        <div class="charts-container" id="charts-container">
+          <div class="chart-box"><canvas id="chart-track"></canvas></div>
+          <div class="chart-box"><canvas id="chart-date"></canvas></div>
+          <div class="chart-box"><canvas id="chart-odds"></canvas></div>
+          <div class="chart-box"><canvas id="chart-bettype"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 競馬場別 × 券種別 分析 (クロス集計) -->
+    <section class="card cross-tab-section">
+      <h2>競馬場別 × 券種別 多角分析</h2>
+      <p class="section-desc">※競馬場名をタップすると、各券種の投資・払戻・的中率・回収率を展開表示します。</p>
+      <div id="accordion-container"></div>
+    </section>
+
+    <!-- 履歴・データ管理セクション -->
+    <section class="card history-section">
+      <h2>履歴一覧とデータ管理</h2>
+      <div class="data-controls">
+        <button id="btn-export" class="btn-secondary">CSVエクスポート</button>
+        <label for="btn-import" class="btn-secondary file-label">CSVインポート</label>
+        <input type="file" id="btn-import" accept=".csv" style="display: none;">
+        <button id="btn-clear" class="btn-danger">全データ一括初期化</button>
+      </div>
+
+      <!-- 履歴専用のタブ切り替え -->
+      <div class="history-tabs">
+        <button class="history-tab-btn active" data-tab="all">すべて</button>
+        <button class="history-tab-btn" data-tab="jra">中央 (JRA)</button>
+        <button class="history-tab-btn" data-tab="local">地方</button>
+        <button class="history-tab-btn" data-tab="foreign">海外</button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="history-table" class="data-table">
+          <thead>
+            <tr>
+              <th>日付</th><th>場/R</th><th>券種</th><th>オッズ</th><th>投資</th><th>払戻</th><th>結果</th><th>回収率</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
